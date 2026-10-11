@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sprint Planner</title>
+<style>
+:root{--bg:#f6f5f1;--panel:#fff;--ink:#1d1c1a;--muted:#78746c;--line:#e4e1d8;--weekend:#f1efe8;--accent:#2f5bd8;--today:#d8452f;--mhead:#ecebe4;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17171a;--panel:#212125;--ink:#ecebe6;--muted:#9a978f;--line:#34343a;--weekend:#1b1b1f;--accent:#7b9bff;--today:#ff7a63;--mhead:#2a2a30}}
+:root[data-theme="dark"]{--bg:#17171a;--panel:#212125;--ink:#ecebe6;--muted:#9a978f;--line:#34343a;--weekend:#1b1b1f;--accent:#7b9bff;--today:#ff7a63;--mhead:#2a2a30}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px}
+h1{font-size:16px;margin:0 auto 0 0}
+.nav{display:flex;align-items:center;gap:5px}
+.month{min-width:120px;text-align:center;font-weight:600}
+button{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:4px 10px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.danger{color:var(--today)}
+.wrap{margin:0 12px 10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow-x:auto}
+.board{position:relative;display:grid;grid-template-columns:120px var(--tw);width:calc(120px + var(--tw))}
+.label{padding:4px 10px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);font-weight:600;font-size:12px;display:flex;align-items:center;position:sticky;left:0;background:var(--panel);z-index:6}
+.label.lane{cursor:pointer;word-break:break-word}.label.lane:hover{color:var(--accent)}
+.label.corner{color:var(--muted);font-weight:500;grid-row:span 2}
+.months{display:flex;background:var(--mhead);border-bottom:1px solid var(--line)}
+.mb{flex:none;border-left:1px solid var(--line);height:22px}
+.mb:first-child{border-left:0}
+.mb span{position:sticky;left:128px;padding:0 8px;font-weight:700;font-size:12px;line-height:22px;display:inline-block}
+.days{display:flex;border-bottom:1px solid var(--line)}
+.day{flex:none;width:var(--dw);text-align:center;font-size:9px;color:var(--muted);line-height:1.15;padding:2px 0}
+.day b{display:block;font-size:11px;color:var(--ink);font-weight:600}
+.day.we{background:var(--weekend)}
+.day.ms{border-left:1px solid var(--line)}
+.day.today b{color:#fff;background:var(--today);border-radius:8px;margin:0 2px}
+.track{position:relative;border-bottom:1px solid var(--line);
+  background-image:repeating-linear-gradient(90deg,transparent 0,transparent calc(var(--dw) - 1px),var(--line) calc(var(--dw) - 1px),var(--line) var(--dw))}
+.mdiv{position:absolute;top:0;bottom:0;width:1px;background:var(--muted);opacity:.5;pointer-events:none}
+.todayline{position:absolute;top:0;bottom:0;width:2px;background:var(--today);opacity:.7;z-index:2;pointer-events:none}
+.sprint{position:absolute;height:22px;border-radius:5px;color:#fff;font-weight:600;font-size:11px;padding:0 7px;display:flex;align-items:center;white-space:nowrap;overflow:hidden;cursor:pointer;box-shadow:0 1px 2px #0003;z-index:1}
+.sprint small{opacity:.85;font-weight:500;margin-left:6px;font-size:10px}
+.cell{position:absolute;top:4px;bottom:4px;border-radius:6px;cursor:copy;border:1px dashed color-mix(in srgb,var(--c) 55%,transparent);background:color-mix(in srgb,var(--c) 12%,transparent);overflow:hidden}
+.cell:hover{background:color-mix(in srgb,var(--c) 22%,transparent)}
+.task{position:absolute;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--c);border-radius:4px;padding:0;font-size:11px;cursor:pointer;line-height:14px;overflow:hidden}
+.task span{position:absolute;white-space:nowrap}
+.task:hover{border-color:var(--accent)}
+.task.doing{border-left-color:#e0a21a}.task.done{opacity:.55;text-decoration:line-through}
+/* breaks */
+.brk{position:absolute;top:0;bottom:0;pointer-events:none;z-index:3;border-left:1px solid var(--muted);border-right:1px solid var(--muted)}
+.brk.within{background:repeating-linear-gradient(45deg,color-mix(in srgb,var(--muted) 28%,transparent) 0 4px,transparent 4px 8px);background-color:color-mix(in srgb,var(--panel) 55%,transparent)}
+.brk.replace{background:repeating-linear-gradient(45deg,color-mix(in srgb,var(--muted) 30%,transparent) 0 4px,transparent 4px 8px);background-color:color-mix(in srgb,var(--mhead) 92%,transparent)}
+.blabel{position:absolute;z-index:4;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden}
+.blabel span{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;font-weight:700;font-size:11px;max-height:100%;overflow:hidden;text-overflow:ellipsis;pointer-events:auto;cursor:pointer;padding:4px 0;background:color-mix(in srgb,var(--panel) 75%,transparent);border-radius:4px}
+.blabel span:hover{color:var(--accent)}
+/* releases */
+.rel{position:absolute;top:0;bottom:0;width:3px;border-radius:2px;z-index:3;pointer-events:none}
+.rlabel{position:absolute;font-size:11px;font-weight:700;white-space:nowrap;cursor:pointer;line-height:16px;z-index:4}
+.rlabel:hover{text-decoration:underline}
+.empty{padding:18px;text-align:center;color:var(--muted);grid-column:1/-1}
+.hint{padding:0 12px 12px;color:var(--muted);font-size:11px}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:18px;width:min(380px,92vw)}
+dialog::backdrop{background:#0006}
+dialog h2{margin:0 0 12px;font-size:16px}
+.f{display:flex;flex-direction:column;gap:3px;margin-bottom:10px;font-size:12px;color:var(--muted)}
+.f input,.f select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+.f textarea{font:11px/1.4 ui-monospace,Menlo,Consolas,monospace;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;width:100%;height:150px;resize:vertical}
+.f input[type=color]{padding:2px;height:34px}
+.btns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.btns .sp{margin-right:auto}
+.err{color:var(--today);font-size:12px;min-height:16px;margin-top:4px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Sprint Planner</h1>
+  <div class="nav"><button id="prev">‹</button><div class="month" id="month"></div><button id="next">›</button><button id="todayBtn">Today</button></div>
+  <button id="addSprint" class="primary">+ Sprint</button>
+  <button id="addLane">+ Lane</button>
+  <button id="addTask">+ Task</button>
+  <button id="addBreak">+ Break</button>
+  <button id="addRelease">+ Release</button>
+  <button id="exportBtn" title="Save your whole plan as a JSON file">Export</button>
+  <button id="importBtn" title="Load a plan from a JSON file">Import</button>
+</header>
+<div class="wrap" id="wrap"><div class="board" id="board"></div></div>
+<div class="hint">Scroll sideways through the months. Task names flow around breaks. Click a sprint, lane, task, break or release name to edit it, or click an empty spot in a lane under a sprint to add a task there.</div>
+<dialog id="dlg"><h2 id="dtitle"></h2><div id="dfields"></div><div class="err" id="derr"></div><div class="btns" id="dbtns"></div></dialog>
+
+<script>
+const DW=22;
+const COLORS=["#2f5bd8","#16a085","#c0392b","#8e44ad","#d98a0b","#2c7fb8"];
+const KEY="sprint-planner-v1";
+const uid=()=>Math.random().toString(36).slice(2,9);
+const pad=n=>String(n).padStart(2,"0");
+const fmt=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const dayDiff=(a,b)=>Math.round((a-b)/864e5);
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const wrap=document.getElementById("wrap");
+const now=new Date();
+const today0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+let S=load();
+let rangeStart=null, visibleDate=new Date(today0);
+
+function seed(){
+  const y=now.getFullYear(),m=now.getMonth(),d=n=>fmt(new Date(y,m,n));
+  const s1=uid(),s2=uid(),l1=uid(),l2=uid();
+  return {sprints:[{id:s1,name:"Sprint 1",start:d(1),end:d(14),color:COLORS[0]},{id:s2,name:"Sprint 2",start:d(15),end:d(28),color:COLORS[1]}],
+    lanes:[{id:l1,name:"Frontend"},{id:l2,name:"Backend"}],
+    tasks:[{id:uid(),title:"Design login page",lane:l1,sprint:s1,status:"done"},{id:uid(),title:"Build dashboard",lane:l1,sprint:s2,status:"todo"},{id:uid(),title:"Auth API",lane:l2,sprint:s1,status:"doing"},{id:uid(),title:"Reports endpoint",lane:l2,sprint:s2,status:"todo"}],
+    breaks:[{id:uid(),name:"Team offsite",start:d(8),end:d(9),mode:"within"}],
+    releases:[{id:uid(),name:"v1.0 release",date:d(14),color:"#d6246e"}]};
+}
+function load(){try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);o.breaks=o.breaks||[];o.releases=o.releases||[];return o}}catch(e){}return seed()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+const h=(tag,attrs={},...kids)=>{const e=document.createElement(tag);for(const k in attrs){if(k==="style")e.style.cssText=attrs[k];else if(k.startsWith("on"))e.addEventListener(k.slice(2),attrs[k]);else if(k==="class")e.className=attrs[k];else e.setAttribute(k,attrs[k])}kids.flat().forEach(c=>e.append(c));return e};
+
+const fmtUS=s=>{const d=parse(s);return `${pad(d.getMonth()+1)}/${pad(d.getDate())}/${d.getFullYear()}`};
+const md=d=>`${pad(d.getMonth()+1)}/${pad(d.getDate())}`;
+const _cv=document.createElement("canvas").getContext("2d");
+const LH=14,TGAP=4;
+function measure(t){_cv.font=`11px ${getComputedStyle(document.body).fontFamily}`;return _cv.measureText(t).width}
+// One box per task: it grows to span the free segments it needs and as many lines as needed;
+// the title text flows (whole words) through the free segments, skipping break days, then wraps to the next line.
+function layoutTask(task,segs,y0){
+  const words=task.title.split(/\s+/).filter(Boolean);
+  const maxAvail=Math.max(...segs.map(g=>g.w-14));
+  const grid=[[]];let r=0,k=0;
+  words.forEach(w=>{
+    for(;;){
+      const avail=segs[k].w-14,t=grid[r][k]||"",cand=t?t+" "+w:w;
+      if(measure(cand)<=avail||(!t&&measure(w)>maxAvail)){grid[r][k]=cand;break}
+      if(k+1<segs.length)k++;else{r++;k=0;grid[r]=[]}
+    }
+  });
+  const used=[];let row=0;
+  grid.forEach(rw=>{if(!rw.some(Boolean))return;rw.forEach((txt,i)=>{if(txt)used.push({i,row,txt})});row++});
+  const minX=Math.min(...used.map(u=>segs[u.i].x)),maxR=Math.max(...used.map(u=>segs[u.i].x+segs[u.i].w));
+  const box={x:minX,w:maxR-minX,y:y0,h:row*LH+6,task,
+    lines:used.map(u=>({x:segs[u.i].x-minX+4,y:2+u.row*LH,text:u.txt}))};
+  return {pieces:[box],h:box.h};
+}
+function render(){
+  let lo=new Date(now.getFullYear(),now.getMonth()-1,1);
+  let hi=new Date(now.getFullYear(),now.getMonth()+4,0);
+  const ext=(a,b)=>{const a1=new Date(a.getFullYear(),a.getMonth(),1),b1=new Date(b.getFullYear(),b.getMonth()+1,0);if(a1<lo)lo=a1;if(b1>hi)hi=b1};
+  S.sprints.forEach(s=>ext(parse(s.start),parse(s.end)));
+  S.breaks.forEach(b=>ext(parse(b.start),parse(b.end)));
+  S.releases.forEach(r=>ext(parse(r.date),parse(r.date)));
+  rangeStart=lo;
+  const days=dayDiff(hi,lo)+1, tw=days*DW;
+  const board=document.getElementById("board");
+  const keep=wrap.scrollLeft;
+  board.innerHTML="";
+  board.style.setProperty("--tw",tw+"px");
+  board.style.setProperty("--dw",DW+"px");
+  const idx=d=>dayDiff(d,lo);
+  const todayIdx=idx(today0);
+  const brks=S.breaks.map(b=>({b,si:idx(parse(b.start)),ei:idx(parse(b.end))}));
+  const rels=S.releases.map(r=>({r,x:idx(parse(r.date))*DW+DW})).sort((p,q)=>p.x-q.x);
+
+  const overlays=()=>{
+    const f=document.createDocumentFragment();
+    for(let d=new Date(lo);d<=hi;d=new Date(d.getFullYear(),d.getMonth()+1,1))
+      if(d>lo)f.append(h("div",{class:"mdiv",style:`left:${idx(d)*DW}px`}));
+    if(todayIdx>=0&&todayIdx<days)f.append(h("div",{class:"todayline",style:`left:${todayIdx*DW-1}px`}));
+    return f;
+  };
+  const relLines=()=>{const f=document.createDocumentFragment();rels.forEach(v=>f.append(h("div",{class:"rel",style:`left:${v.x-1.5}px;background:${v.r.color}`})));return f};
+  const brkBands=(replaceToo)=>{const f=document.createDocumentFragment();
+    brks.forEach(v=>{if(v.b.mode==="replace"&&!replaceToo&&false)return;
+      f.append(h("div",{class:"brk "+v.b.mode,style:`left:${v.si*DW}px;width:${(v.ei-v.si+1)*DW}px`}))});return f};
+
+  // header
+  board.append(h("div",{class:"label corner"},"Swim lanes"));
+  const mrow=h("div",{class:"months"});
+  for(let d=new Date(lo);d<=hi;d=new Date(d.getFullYear(),d.getMonth()+1,1)){
+    const dim=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+    mrow.append(h("div",{class:"mb",style:`width:${dim*DW}px`},h("span",{},`${MONTHS[d.getMonth()]} ${d.getFullYear()}`)));
+  }
+  board.append(mrow);
+  const drow=h("div",{class:"days"});
+  for(let i=0;i<days;i++){
+    const dt=new Date(lo.getFullYear(),lo.getMonth(),lo.getDate()+i),wd=dt.getDay();
+    drow.append(h("div",{class:"day"+(wd===0||wd===6?" we":"")+(dt.getDate()===1?" ms":"")+(i===todayIdx?" today":"")},h("b",{},String(dt.getDate())),"SMTWTFS"[wd]));
+  }
+  board.append(drow);
+
+  // sprints row (breaks that replace a sprint also show here)
+  const vis=S.sprints.map(s=>({s,si:idx(parse(s.start)),ei:idx(parse(s.end))})).sort((p,q)=>p.si-q.si);
+  const tracks=[];
+  vis.forEach(v=>{let t=tracks.findIndex(end=>end<v.si);if(t<0){t=tracks.length;tracks.push(-1)}tracks[t]=v.ei;v.t=t});
+  const rows=Math.max(1,tracks.length);
+  board.append(h("div",{class:"label"},"Sprints"));
+  const st=h("div",{class:"track",style:`height:${rows*28+6}px`},overlays());
+  vis.forEach(v=>{
+    const a=parse(v.s.start),b=parse(v.s.end);
+    st.append(h("div",{class:"sprint",title:`${v.s.name}: ${fmtUS(v.s.start)} → ${fmtUS(v.s.end)}`,
+      style:`left:${v.si*DW+1}px;width:${(v.ei-v.si+1)*DW-2}px;top:${4+v.t*28}px;background:${v.s.color}`,
+      onclick:()=>sprintDialog(v.s)},v.s.name,h("small",{},`${md(a)}–${md(b)}`)));
+  });
+  brks.filter(v=>v.b.mode==="replace").forEach(v=>st.append(h("div",{class:"brk replace",style:`left:${v.si*DW}px;width:${(v.ei-v.si+1)*DW}px`})));
+  st.append(relLines());
+  board.append(st);
+
+  // lanes
+  if(!S.lanes.length)board.append(h("div",{class:"empty"},"No swim lanes yet — add one to start placing tasks."));
+  const laneTracks=[];
+  S.lanes.forEach(l=>{
+    board.append(h("div",{class:"label lane",title:"Edit lane",onclick:()=>laneDialog(l)},l.name));
+    const blocked=new Set();
+    brks.forEach(v=>{for(let i=v.si;i<=v.ei;i++)blocked.add(i)});
+    const lays=vis.map(v=>{
+      let segs=[],start=null;
+      for(let i=v.si;i<=v.ei+1;i++){
+        const free=i<=v.ei&&!blocked.has(i);
+        if(free&&start===null)start=i;
+        if(!free&&start!==null){segs.push({x:(start-v.si)*DW,w:(i-start)*DW-4});start=null}
+      }
+      const usable=segs.filter(g=>g.w>=40);
+      if(usable.length)segs=usable;else if(!segs.length)segs=[{x:0,w:(v.ei-v.si+1)*DW-4}];
+      else segs=[segs.reduce((a,b)=>b.w>a.w?b:a)];
+      let y=3;const pieces=[];
+      S.tasks.filter(t=>t.lane===l.id&&t.sprint===v.s.id).forEach(t=>{const o=layoutTask(t,segs,y);pieces.push(...o.pieces);y+=o.h+TGAP});
+      return {pieces,h:y};
+    });
+    const tr=h("div",{class:"track",style:`height:${Math.max(40,Math.max(0,...lays.map(x=>x.h))+8)}px`},overlays());
+    vis.forEach((v,vi)=>{
+      const cell=h("div",{class:"cell",style:`--c:${v.s.color};left:${v.si*DW+1}px;width:${(v.ei-v.si+1)*DW-2}px`,
+        title:`Add task to ${l.name} / ${v.s.name}`,onclick:()=>taskDialog(null,{lane:l.id,sprint:v.s.id})});
+      lays[vi].pieces.forEach(p=>{
+        cell.append(h("div",{class:"task "+p.task.status,title:p.task.title,style:`left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`,onclick:e=>{e.stopPropagation();taskDialog(p.task)}},p.lines.map(ln=>h("span",{style:`left:${ln.x}px;top:${ln.y}px`},ln.text))));
+      });
+      tr.append(cell);
+    });
+    tr.append(brkBands(true));
+    tr.append(relLines());
+    laneTracks.push(tr);
+    board.append(tr);
+  });
+
+  // releases row (below all swim lanes)
+  const rt=[];
+  rels.forEach(v=>{const w=v.r.name.length*6.4+16;let t=rt.findIndex(e=>e<v.x);if(t<0){t=rt.length;rt.push(0)}rt[t]=v.x+6+w;v.t=t});
+  board.append(h("div",{class:"label"},"Releases"));
+  const rr=h("div",{class:"track",style:`height:${Math.max(1,rt.length)*18+10}px`},overlays());
+  rels.forEach(v=>{
+    rr.append(h("div",{class:"rel",style:`left:${v.x-1.5}px;background:${v.r.color}`}));
+    rr.append(h("div",{class:"rlabel",title:`${v.r.name} — ${fmtUS(v.r.date)}`,style:`left:${v.x+6}px;top:${5+v.t*18}px;color:${v.r.color}`,onclick:()=>releaseDialog(v.r)},v.r.name));
+  });
+  board.append(rr);
+
+  // vertical break names: one label per break, drawn over the lanes (and sprint row if it replaces a sprint)
+  if(laneTracks.length||brks.some(v=>v.b.mode==="replace")){
+    const left=st.offsetLeft;
+    const bottom=laneTracks.length?laneTracks[laneTracks.length-1].offsetTop+laneTracks[laneTracks.length-1].offsetHeight:st.offsetTop+st.offsetHeight;
+    brks.forEach(v=>{
+      const replace=v.b.mode==="replace";
+      if(!replace&&!laneTracks.length)return;
+      const top=replace?st.offsetTop:laneTracks[0].offsetTop;
+      board.append(h("div",{class:"blabel",style:`left:${left+v.si*DW}px;width:${(v.ei-v.si+1)*DW}px;top:${top}px;height:${bottom-top}px`},
+        h("span",{title:`${v.b.name} (${replace?"in place of a sprint":"part of a sprint"}): ${fmtUS(v.b.start)} → ${fmtUS(v.b.end)}`,onclick:()=>breakDialog(v.b)},v.b.name)));
+    });
+  }
+  wrap.scrollLeft=keep;
+  updateMonthLabel();
+}
+
+function updateMonthLabel(){
+  if(!rangeStart)return;
+  const i=Math.max(0,Math.floor(wrap.scrollLeft/DW))+3;
+  visibleDate=new Date(rangeStart.getFullYear(),rangeStart.getMonth(),rangeStart.getDate()+i);
+  document.getElementById("month").textContent=`${MONTHS[visibleDate.getMonth()]} ${visibleDate.getFullYear()}`;
+}
+function scrollToDate(d,smooth){wrap.scrollTo({left:dayDiff(d,rangeStart)*DW,behavior:smooth?"smooth":"auto"})}
+wrap.addEventListener("scroll",updateMonthLabel,{passive:true});
+
+/* ---------- dialog helper ---------- */
+const dlg=document.getElementById("dlg");
+function dialog(title,fields,onSave,onDelete){
+  document.getElementById("dtitle").textContent=title;
+  document.getElementById("derr").textContent="";
+  const box=document.getElementById("dfields");box.innerHTML="";
+  const inputs={};
+  fields.forEach(f=>{
+    let el;
+    if(f.options){el=h("select",{});f.options.forEach(([v,t])=>{const o=h("option",{value:v},t);if(v===f.value)o.selected=true;el.append(o)})}
+    else el=h("input",{type:f.type||"text",value:f.value??""});
+    inputs[f.key]=el;
+    box.append(h("label",{class:"f"},f.label,el));
+  });
+  const btns=document.getElementById("dbtns");btns.innerHTML="";
+  if(onDelete){let armed=false;const db=h("button",{class:"danger sp",onclick:()=>{if(!armed){armed=true;db.textContent="Click again to delete";return}onDelete();dlg.close();commit()}},"Delete");btns.append(db)}
+  btns.append(h("button",{onclick:()=>dlg.close()},"Cancel"));
+  btns.append(h("button",{class:"primary",onclick:()=>{
+    const vals={};for(const k in inputs)vals[k]=inputs[k].value.trim();
+    const err=onSave(vals);
+    if(err){document.getElementById("derr").textContent=err;return}
+    dlg.close();commit();
+  }},"Save"));
+  dlg.showModal();
+  const first=box.querySelector("input,select");if(first)first.focus();
+}
+function commit(){save();render()}
+
+function sprintDialog(s){
+  const isNew=!s;
+  const vm=new Date(visibleDate.getFullYear(),visibleDate.getMonth(),1);
+  const base=s||{name:`Sprint ${S.sprints.length+1}`,start:fmt(vm),end:fmt(new Date(vm.getFullYear(),vm.getMonth(),14)),color:COLORS[S.sprints.length%COLORS.length]};
+  dialog(isNew?"New sprint":"Edit sprint",[
+    {key:"name",label:"Name",value:base.name},
+    {key:"start",label:"Start date",type:"date",value:base.start},
+    {key:"end",label:"End date",type:"date",value:base.end},
+    {key:"color",label:"Color",type:"color",value:base.color}],
+    v=>{
+      if(!v.name)return"Give the sprint a name.";
+      if(!v.start||!v.end)return"Pick start and end dates.";
+      if(v.end<v.start)return"End date must be on or after the start date.";
+      if(isNew)S.sprints.push({id:uid(),...v});else Object.assign(s,v);
+    },
+    isNew?null:()=>{S.sprints=S.sprints.filter(x=>x!==s);S.tasks=S.tasks.filter(t=>t.sprint!==s.id)});
+}
+function breakDialog(b){
+  const isNew=!b;
+  const st=fmt(visibleDate),en=fmt(new Date(visibleDate.getFullYear(),visibleDate.getMonth(),visibleDate.getDate()+4));
+  const base=b||{name:"",start:st,end:en,mode:"within"};
+  dialog(isNew?"New break":"Edit break",[
+    {key:"name",label:"Name",value:base.name},
+    {key:"start",label:"Start date",type:"date",value:base.start},
+    {key:"end",label:"End date",type:"date",value:base.end},
+    {key:"mode",label:"Break type",value:base.mode,options:[["within","Part of a sprint (sprint continues across it)"],["replace","In place of a sprint (long break)"]]}],
+    v=>{
+      if(!v.name)return"Give the break a name.";
+      if(!v.start||!v.end)return"Pick start and end dates.";
+      if(v.end<v.start)return"End date must be on or after the start date.";
+      if(isNew)S.breaks.push({id:uid(),...v});else Object.assign(b,v);
+    },
+    isNew?null:()=>{S.breaks=S.breaks.filter(x=>x!==b)});
+}
+function releaseDialog(r){
+  const isNew=!r;
+  const base=r||{name:"",date:fmt(visibleDate),color:"#d6246e"};
+  dialog(isNew?"New release":"Edit release",[
+    {key:"name",label:"Name",value:base.name},
+    {key:"date",label:"Date",type:"date",value:base.date},
+    {key:"color",label:"Color",type:"color",value:base.color}],
+    v=>{
+      if(!v.name)return"Give the release a name.";
+      if(!v.date)return"Pick a date.";
+      if(isNew)S.releases.push({id:uid(),...v});else Object.assign(r,v);
+    },
+    isNew?null:()=>{S.releases=S.releases.filter(x=>x!==r)});
+}
+function laneDialog(l){
+  const isNew=!l;
+  dialog(isNew?"New swim lane":"Edit swim lane",[{key:"name",label:"Name",value:l?l.name:""}],
+    v=>{if(!v.name)return"Give the lane a name.";if(isNew)S.lanes.push({id:uid(),name:v.name});else l.name=v.name},
+    isNew?null:()=>{S.lanes=S.lanes.filter(x=>x!==l);S.tasks=S.tasks.filter(t=>t.lane!==l.id)});
+}
+function taskDialog(t,pre={}){
+  if(!S.lanes.length)return notice("Add a swim lane first.");
+  if(!S.sprints.length)return notice("Add a sprint first.");
+  const isNew=!t;
+  const base=t||{title:"",lane:pre.lane||S.lanes[0].id,sprint:pre.sprint||S.sprints[0].id,status:"todo"};
+  dialog(isNew?"New task":"Edit task",[
+    {key:"title",label:"Task",value:base.title},
+    {key:"lane",label:"Swim lane",value:base.lane,options:S.lanes.map(l=>[l.id,l.name])},
+    {key:"sprint",label:"Sprint",value:base.sprint,options:S.sprints.map(s=>[s.id,`${s.name} (${fmtUS(s.start)} → ${fmtUS(s.end)})`])},
+    {key:"status",label:"Status",value:base.status,options:[["todo","To do"],["doing","In progress"],["done","Done"]]}],
+    v=>{if(!v.title)return"Give the task a title.";if(isNew)S.tasks.push({id:uid(),...v});else Object.assign(t,v)},
+    isNew?null:()=>{S.tasks=S.tasks.filter(x=>x!==t)});
+}
+
+/* ---------- export / import ---------- */
+function plainDialog(title,bodyEls,buttons){
+  document.getElementById("dtitle").textContent=title;
+  const err=document.getElementById("derr");err.textContent="";
+  const box=document.getElementById("dfields");box.innerHTML="";
+  bodyEls.forEach(e=>box.append(e));
+  const btns=document.getElementById("dbtns");btns.innerHTML="";
+  buttons.forEach(b=>btns.append(b));
+  dlg.showModal();
+}
+function notice(msg){plainDialog("Heads up",[h("div",{},msg)],[h("button",{class:"primary",onclick:()=>dlg.close()},"OK")])}
+function showText(title,text){
+  const ta=h("textarea",{readonly:"readonly"});ta.value=text;
+  plainDialog(title,[h("div",{class:"f"},"Copy this text and keep it somewhere safe. Use Import later to load it back.",ta)],[
+    h("button",{onclick:async()=>{try{await navigator.clipboard.writeText(text);document.getElementById("derr").textContent="Copied.";}catch(e){ta.select();document.getElementById("derr").textContent="Press Ctrl/Cmd+C to copy."}}},"Copy"),
+    h("button",{class:"primary",onclick:()=>dlg.close()},"Close")]);
+  ta.select();
+}
+async function exportData(){
+  const json=JSON.stringify(S,null,2),name=`sprint-planner-${fmt(today0)}.json`;
+  let dl=null;
+  try{if(typeof claude!=="undefined")dl=await claude.use("downloads")}catch(e){}
+  if(dl){
+    try{await dl.save({filename:name,data:json});return}
+    catch(e){if(e&&e.code==="declined")return}
+  }
+  showText("Export plan",json);
+}
+function normalize(o){
+  if(o&&o.data&&!o.sprints)o=o.data;
+  if(!o||typeof o!=="object")throw new Error("That doesn't look like a planner export.");
+  const arr=k=>{if(o[k]===undefined)return[];if(!Array.isArray(o[k]))throw new Error(`"${k}" should be a list.`);return o[k]};
+  const out={sprints:arr("sprints"),lanes:arr("lanes"),tasks:arr("tasks"),breaks:arr("breaks"),releases:arr("releases")};
+  const bad=(list,keys,label)=>list.forEach(x=>{if(!x||keys.some(k=>x[k]===undefined||x[k]===""))throw new Error(`A ${label} entry is missing required fields.`)});
+  bad(out.sprints,["id","name","start","end"],"sprint");bad(out.lanes,["id","name"],"lane");
+  bad(out.tasks,["id","title","lane","sprint"],"task");bad(out.breaks,["id","name","start","end"],"break");bad(out.releases,["id","name","date"],"release");
+  return out;
+}
+function importDialog(){
+  const err=()=>document.getElementById("derr");
+  let pending=null;
+  const ta=h("textarea",{placeholder:"…or paste exported JSON here"});
+  const file=h("input",{type:"file",accept:".json,application/json,text/plain"});
+  const go=h("button",{class:"primary"},"Import");
+  const reset=()=>{pending=null;go.textContent="Import"};
+  ta.addEventListener("input",()=>{reset();err().textContent=""});
+  file.addEventListener("change",()=>{
+    const f=file.files[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=()=>{ta.value=String(r.result);reset();err().textContent="Loaded "+f.name+". Press Import."};
+    r.onerror=()=>{err().textContent="Couldn't read that file. Try pasting its contents instead."};
+    r.readAsText(f);
+  });
+  go.addEventListener("click",()=>{
+    try{
+      if(!pending){
+        if(!ta.value.trim()){err().textContent="Choose a file or paste the exported JSON first.";return}
+        pending=normalize(JSON.parse(ta.value));
+        err().textContent="Found "+pending.sprints.length+" sprints, "+pending.lanes.length+" lanes, "+pending.tasks.length+" tasks, "+pending.breaks.length+" breaks, "+pending.releases.length+" releases. This will replace your current plan.";
+        go.textContent="Yes, replace my plan";return;
+      }
+      S=pending;dlg.close();commit();
+    }catch(e){reset();err().textContent=e instanceof SyntaxError?"That isn't valid JSON.":e.message}
+  });
+  plainDialog("Import plan",[
+    h("label",{class:"f"},"Choose an exported .json file",file),
+    h("label",{class:"f"},"Or paste the contents",ta)],[
+    h("button",{onclick:()=>dlg.close()},"Cancel"),go]);
+}
+
+/* ---------- wiring ---------- */
+const mFirst=(d,off)=>new Date(d.getFullYear(),d.getMonth()+off,1);
+prev.onclick=()=>{const cur=new Date(visibleDate.getFullYear(),visibleDate.getMonth(),1);
+  const atEdge=Math.abs(wrap.scrollLeft-dayDiff(cur,rangeStart)*DW)<DW*2;
+  scrollToDate(atEdge?mFirst(cur,-1):cur,true)};
+next.onclick=()=>scrollToDate(mFirst(visibleDate,1),true);
+todayBtn.onclick=()=>scrollToDate(new Date(now.getFullYear(),now.getMonth(),1),true);
+addSprint.onclick=()=>sprintDialog();
+addLane.onclick=()=>laneDialog();
+addTask.onclick=()=>taskDialog();
+addBreak.onclick=()=>breakDialog();
+addRelease.onclick=()=>releaseDialog();
+exportBtn.onclick=exportData;
+importBtn.onclick=importDialog;
+render();
+scrollToDate(new Date(now.getFullYear(),now.getMonth(),1),false);
+</script>
+</body>
+</html>
